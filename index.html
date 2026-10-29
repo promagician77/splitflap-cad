@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0}
+body{font:14px system-ui,-apple-system,"Segoe UI",sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Split Flap Geometry</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f5f4ef; --panel:#fffefb; --panel2:#efede6; --ink:#17171b; --ink2:#5a5a66;
+  --line:#d9d6cc; --line2:#c2bfb3; --accent:#4338ca; --accent-soft:#e8e6fb;
+  --warn:#c2410c; --warn-soft:#fdeee4; --ok:#047857; --ok-soft:#e3f5ee;
+  --grid:#e2dfd5; --shadow:0 1px 2px rgba(23,23,27,.06),0 8px 24px -16px rgba(23,23,27,.3);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111216; --panel:#1a1c21; --panel2:#23262c; --ink:#e9e7e1; --ink2:#9a9aa6;
+    --line:#2e323a; --line2:#3c414b; --accent:#a5a0ff; --accent-soft:#242347;
+    --warn:#fb923c; --warn-soft:#3a2314; --ok:#4ade80; --ok-soft:#10301f;
+    --grid:#23262c; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -18px #000;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111216; --panel:#1a1c21; --panel2:#23262c; --ink:#e9e7e1; --ink2:#9a9aa6;
+  --line:#2e323a; --line2:#3c414b; --accent:#a5a0ff; --accent-soft:#242347;
+  --warn:#fb923c; --warn-soft:#3a2314; --ok:#4ade80; --ok-soft:#10301f;
+  --grid:#23262c; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -18px #000;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1140px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 64px;}
+h1,h2,h3{font-family:"Space Grotesk",Inter,sans-serif;text-wrap:balance;margin:0}
+h1{font-size:clamp(22px,4.2vw,32px);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(17px,2.6vw,21px);font-weight:700;letter-spacing:-.01em;margin:0 0 6px}
+h3{font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);margin:0 0 10px}
+p{margin:0 0 12px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.muted{color:var(--ink2)}
+.sm{font-size:13px}
+.xs{font-size:12px}
+
+header.top{padding-block:26px 14px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.sub{color:var(--ink2);max-width:62ch;margin-top:8px}
+
+.banner{display:flex;gap:10px;align-items:flex-start;background:var(--warn-soft);
+  border:1px solid var(--warn);border-radius:8px;padding:11px 13px;margin-top:16px;font-size:12.5px;line-height:1.5}
+.banner b{color:var(--warn)}
+.banner svg{flex:none;margin-top:1px}
+
+nav{display:flex;gap:4px;overflow-x:auto;padding-block:14px;position:sticky;
+  top:env(safe-area-inset-top,0px);background:var(--bg);z-index:10;
+  border-bottom:1px solid var(--line);scrollbar-width:thin}
+nav button{flex:none;font:500 13px/1 Inter,sans-serif;color:var(--ink2);background:none;
+  border:1px solid transparent;border-radius:7px;padding:8px 11px;cursor:pointer;white-space:nowrap}
+nav button:hover{color:var(--ink);background:var(--panel2)}
+nav button[aria-selected="true"]{color:var(--accent);background:var(--accent-soft);border-color:var(--accent)}
+nav button .n{font-family:"IBM Plex Mono",monospace;opacity:.6;margin-right:6px;font-size:11px}
+
+section{padding-top:28px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:18px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card.flat{box-shadow:none;background:var(--panel2)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;min-width:0}
+th{text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink2);padding:8px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.pill{display:inline-block;font:600 11px/1.6 "IBM Plex Mono",monospace;padding:1px 8px;border-radius:999px;
+  letter-spacing:.04em;text-transform:uppercase}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+
+.ctrl{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;margin-bottom:14px}
+.ctrl label{font-size:13px;font-weight:500}
+.ctrl .v{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--accent);font-weight:600}
+.ctrl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent);margin:0}
+.ctrl .hint{grid-column:1/-1;font-size:11.5px;color:var(--ink2);margin-top:-2px}
+
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.readout div{background:var(--panel);padding:10px 12px}
+.readout .k{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2)}
+.readout .val{font-family:"IBM Plex Mono",monospace;font-size:17px;font-weight:600;margin-top:2px}
+.readout .val small{font-size:11px;font-weight:400;color:var(--ink2);margin-left:2px}
+.readout div.hl{background:var(--accent-soft)}
+.readout div.bad{background:var(--warn-soft)}
+.readout div.good{background:var(--ok-soft)}
+
+.presets{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.presets button{font:600 12px/1 "IBM Plex Mono",monospace;padding:7px 10px;border-radius:7px;
+  border:1px solid var(--line2);background:var(--panel);color:var(--ink);cursor:pointer}
+.presets button:hover{border-color:var(--accent);color:var(--accent)}
+.presets button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.check{display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border-radius:8px;
+  font-size:13px;margin-bottom:7px;border:1px solid}
+.check.pass{background:var(--ok-soft);border-color:var(--ok)}
+.check.fail{background:var(--warn-soft);border-color:var(--warn)}
+.check .mk{font-family:"IBM Plex Mono",monospace;font-weight:700;flex:none}
+.check.pass .mk{color:var(--ok)}
+.check.fail .mk{color:var(--warn)}
+
+svg.fig{display:block;width:100%;height:auto;max-width:100%}
+
+.stepnum{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;color:#fff;
+  background:var(--accent);width:21px;height:21px;border-radius:5px;display:inline-flex;
+  align-items:center;justify-content:center;flex:none}
+.step{display:flex;gap:11px;padding:11px 0;border-bottom:1px dashed var(--line)}
+.step:last-child{border-bottom:0}
+.step b{font-weight:600}
+
+.gridprev{display:grid;gap:3px;background:var(--ink);padding:5px;border-radius:5px;
+  width:fit-content;max-width:100%;overflow:auto}
+.gridprev i{display:block;background:var(--panel);border-radius:1px}
+.gridprev i.back{background:var(--panel2);opacity:.78}
+
+ul.tight{margin:0 0 12px;padding-left:19px}
+ul.tight li{margin-bottom:5px}
+code{font-family:"IBM Plex Mono",monospace;font-size:12.5px;background:var(--panel2);
+  padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.kv:last-child{border-bottom:0}
+.kv b{font-family:"IBM Plex Mono",monospace;font-weight:600;white-space:nowrap}
+footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink2)}
+@media (max-width:520px){
+  .readout .val{font-size:15px}
+  td,th{padding:7px 8px}
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Issue one &middot; issue two &middot; issue three</div>
+  <h1>Split flap cartridge geometry</h1>
+  <p class="sub">Worked out from the flap size in your post, the published figures for the upstream project, and nothing else. Built for this application by Jeff.</p>
+  <div class="banner">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6.6"/><path d="M8 4.6v4.2M8 11.2v.2"/></svg>
+    <div><b>Every number on this page is arithmetic, not measurement.</b> The flap size (54 &times; 42.8 &times; 0.76mm PVC) and the two gaps (8mm, 30mm) are yours. Flap count, pin inset, slot pitch, hub radius and window height are assumptions, labelled where they are used, and all five get measured off your STLs in the first three hours. Characters shown are placeholders. No performance figures appear anywhere, because none have been tested.</div>
+  </div>
+</header>
+
+<nav role="tablist" id="tabs">
+  <button role="tab" data-t="gaps" aria-selected="true"><span class="n">01</span>The two gaps</button>
+  <button role="tab" data-t="stack"><span class="n">02</span>Stack-up</button>
+  <button role="tab" data-t="model"><span class="n">03</span>Parametric model</button>
+  <button role="tab" data-t="bezel"><span class="n">04</span>Bezel &amp; rail</button>
+  <button role="tab" data-t="grid"><span class="n">05</span>Grid builder</button>
+  <button role="tab" data-t="sizes"><span class="n">06</span>Three flap sizes</button>
+  <button role="tab" data-t="print"><span class="n">07</span>Print tests</button>
+  <button role="tab" data-t="hours"><span class="n">08</span>Hours</button>
+</nav>
+
+<!-- ============ 01 GAPS ============ -->
+<section id="p-gaps">
+  <h2>One number is material. The other is a moving part.</h2>
+  <p class="muted">That is the whole of issue one. Your horizontal gap is wall thickness and it will shrink. Your vertical gap is the drum, and it will not.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>What you measured</h3>
+      <svg class="fig" viewBox="0 0 340 330" role="img" aria-label="Front view of three cartridges showing an 8mm horizontal gap and a 30mm vertical gap">
+        <defs><pattern id="hx" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="7" stroke="currentColor" stroke-width="2.2" opacity=".32"/></pattern></defs>
+        <g color="var(--accent)">
+          <rect x="20" y="40" width="112" height="152" fill="url(#hx)" stroke="var(--line2)" stroke-width="1.4"/>
+          <rect x="132" y="40" width="112" height="152" fill="url(#hx)" stroke="var(--line2)" stroke-width="1.4"/>
+          <rect x="20" y="192" width="112" height="152" fill="url(#hx)" stroke="var(--line2)" stroke-width="1.4"/>
+        </g>
+        <rect x="28" y="70" width="96" height="92" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/>
+        <rect x="140" y="70" width="96" height="92" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/>
+        <rect x="28" y="222" width="96" height="92" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/>
+        <g font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="var(--ink)" text-anchor="middle">
+          <text x="76" y="126">A</text><text x="188" y="126">B</text><text x="76" y="278">E</text>
+        </g>
+        <g stroke="var(--warn)" stroke-width="1.4">
+          <line x1="124" y1="55" x2="140" y2="55"/>
+          <line x1="124" y1="51" x2="124" y2="59"/><line x1="140" y1="51" x2="140" y2="59"/>
+          <line x1="268" y1="162" x2="268" y2="222"/>
+          <line x1="264" y1="162" x2="272" y2="162"/><line x1="264" y1="222" x2="272" y2="222"/>
+        </g>
+        <g font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="var(--warn)">
+          <text x="150" y="51">8 mm</text><text x="278" y="188">30 mm</text>
+        </g>
+        <g font-family="Inter, sans-serif" font-size="11.5" fill="var(--ink2)">
+          <text x="150" y="65">wall + wall</text><text x="278" y="203">flap overhang</text>
+        </g>
+      </svg>
+    </div>
+    <div class="card">
+      <h3>Why they are different</h3>
+      <div class="kv"><span>Horizontal, each side</span><b>4 mm &rarr; 1.6 mm</b></div>
+      <div class="kv"><span>What sets it</span><b>printed wall</b></div>
+      <div class="kv"><span>Floor</span><b>~3.2 mm total</b></div>
+      <div style="height:10px"></div>
+      <div class="kv"><span>Vertical, each side</span><b>15 mm &rarr; ?</b></div>
+      <div class="kv"><span>What sets it</span><b>flap sweep circle</b></div>
+      <div class="kv"><span>Floor</span><b>99.2 mm pitch</b></div>
+      <p class="sm muted" style="margin-top:14px">Four perimeters of PLA at a 0.4mm nozzle is 1.6mm and still holds an M3 boss. That is the horizontal answer and it takes an afternoon.</p>
+      <p class="sm" style="margin-bottom:0"><b>The vertical gap does not respond to thinner walls at all.</b> A flap pinned near its top edge sweeps a circle. Two cartridges stacked closer than that circle touch each other. Tab 3 lets you move the numbers and watch the circle move.</p>
+    </div>
+  </div>
+  <div class="card flat">
+    <h3>The two equations</h3>
+    <div class="grid2">
+      <div>
+        <p class="mono sm" style="margin-bottom:4px">hub_r = flap_count &times; slot_pitch / 2&pi;</p>
+        <p class="sm muted" style="margin-bottom:0">The hub has to be long enough around to hold the flaps side by side. Fewer flaps is the only thing that shrinks it.</p>
+      </div>
+      <div>
+        <p class="mono sm" style="margin-bottom:4px">sweep_d = 2 &times; (hub_r + flap_h &minus; pin_inset)</p>
+        <p class="sm muted" style="margin-bottom:0">The circle the flap tip traces. In a single depth plane, vertical pitch cannot go below this.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 STACK ============ -->
+<section id="p-stack" hidden>
+  <h2>Where every millimetre goes</h2>
+  <p class="muted">Two gaps, six bands, and one of them is the whole problem.</p>
+  <div class="card"><div class="scroll"><table>
+    <thead><tr><th>Axis</th><th>Band</th><th>Your figure</th><th>What sets it</th><th>Free?</th><th>Floor</th></tr></thead>
+    <tbody id="stackBody"></tbody>
+  </table></div></div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Pitch floor, coplanar</h3>
+      <p class="mono" style="font-size:20px;margin-bottom:4px">pitch_y &ge; 99.2 mm</p>
+      <p class="sm muted" style="margin-bottom:0">Cartridges sitting in one depth plane. This is what you have now, and it is why 15mm per side is not a wall you can shave.</p>
+    </div>
+    <div class="card">
+      <h3>Pitch floor, rows offset in depth</h3>
+      <p class="mono" style="font-size:20px;margin-bottom:4px;color:var(--ok)">pitch_y &ge; window_h + 8 mm</p>
+      <p class="sm muted" style="margin-bottom:0">Alternate rows sit back by the drum depth, one flat bezel sets what you see. This is the route to 8mm, and tab 4 draws it.</p>
+    </div>
+  </div>
+  <div class="card flat">
+    <h3>One thing the arithmetic says that your post does not</h3>
+    <p class="sm" style="margin-bottom:0">Your 30mm vertical gap implies a cartridge pitch near 76mm. The sweep circle on the assumptions above is 99.2mm. Those two cannot both be true, so one of my assumed inputs is wrong: the flap count, the pin inset, the hub, or the cartridges already overlap in depth. Finding out which is the first three hours of the job, and it is worth more than any guess I could make from here.</p>
+  </div>
+</section>
+
+<!-- ============ 03 MODEL ============ -->
+<section id="p-model" hidden>
+  <h2>The parametric cartridge</h2>
+  <p class="muted">Move anything. Every number and the drawing recompute. This is what the deliverable does, and it is why issue three stops being a third redesign.</p>
+  <div class="presets" id="presets">
+    <button data-p="a" aria-pressed="true">today &middot; 54 &times; 42.8</button>
+    <button data-p="b">size B &middot; 108 &times; 42.8</button>
+    <button data-p="c">size C &middot; 300 &times; 300</button>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Inputs</h3>
+      <div id="controls"></div>
+    </div>
+    <div class="card">
+      <h3>Side elevation, two stacked rows</h3>
+      <svg class="fig" id="fig" viewBox="0 0 320 300" role="img" aria-label="Side elevation showing the flap sweep circles of two stacked cartridges"></svg>
+      <p class="xs muted" id="figNote" style="margin:8px 0 0"></p>
+    </div>
+  </div>
+  <div class="readout" id="readout"></div>
+  <div style="height:16px"></div>
+  <div class="card">
+    <h3>Checks</h3>
+    <div id="checks"></div>
+    <p class="xs muted" style="margin:10px 0 0">Torque model is one flap held horizontal: <code>m &times; g &times; (flap_h &minus; pin_inset) / 2</code>. The real drum is partly balanced so the true demand is lower, and friction plus acceleration push it back up. It reports 1.5% for the size that already works, which is the reason to believe it at 455%. Motor figure is the published 28BYJ-48 holding torque of 30 mN&middot;m.</p>
+  </div>
+</section>
+
+<!-- ============ 04 BEZEL ============ -->
+<section id="p-bezel" hidden>
+  <h2>Bezel in front, cartridges offset behind</h2>
+  <p class="muted">The one change that gets both gaps to the same small number, and the part that then becomes your wall mount.</p>
+  <div class="presets" id="bezelToggle">
+    <button data-b="now" aria-pressed="true">as built</button>
+    <button data-b="new">bezel &amp; rail</button>
+  </div>
+  <div class="card">
+    <svg class="fig" id="bezFig" viewBox="0 0 640 380" role="img" aria-label="Side elevation comparing coplanar cartridges with depth-offset rows behind a bezel"></svg>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3>How it works</h3>
+      <ul class="tight sm">
+        <li>A single flat bezel plate carries all the windows and is the only part anyone looks at.</li>
+        <li>Odd rows bolt to the front face of the rail, even rows to the back face. One cartridge, two mounting positions, same part.</li>
+        <li>Rows sharing a depth plane end up two pitches apart, which clears the sweep circle.</li>
+        <li>The gap you see becomes a bezel dimension. It is whatever you want it to be, both axes, and it is the same number in both.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>What it costs</h3>
+      <ul class="tight sm">
+        <li>The back row sits roughly 20mm deeper, so its window narrows as you move off axis. Print coupon 4 before deciding.</li>
+        <li>A short light tunnel behind each back-row window, which wants a matte internal finish or it catches a highlight.</li>
+        <li>One more printed part in the stack, and a deeper piece overall.</li>
+      </ul>
+      <p class="sm" style="margin-bottom:0"><b>This is your call, not mine.</b> You are the one who knows whether a 20mm depth difference reads as a flaw or as a shadow box.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 GRID ============ -->
+<section id="p-grid" hidden>
+  <h2>Issue two, sized</h2>
+  <p class="muted">Same rail, same cartridge, same M3. Only the bezel knows how big the piece is.</p>
+  <div class="card">
+    <div class="grid2">
+      <div>
+        <div class="ctrl">
+          <label for="gc">Columns</label><span class="v" id="gcv">4</span>
+          <input type="range" id="gc" min="1" max="10" step="1" value="4">
+        </div>
+        <div class="ctrl">
+          <label for="gr">Rows</label><span class="v" id="grv">4</span>
+          <input type="range" id="gr" min="1" max="8" step="1" value="4">
+        </div>
+        <div id="gridStats"></div>
+      </div>
+      <div>
+        <h3>Front view</h3>
+        <div id="gridPrev" class="gridprev"></div>
+        <p class="xs muted" style="margin-top:9px">Lighter cells are the rows that sit back in the depth offset. Dimensions use the pitch from tab 3.</p>
+      </div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3>What a bigger grid actually needs</h3>
+      <div class="step"><span class="stepnum">1</span><div><b>Cleat</b> screws to the wall. Keyhole slots every 40mm, so it finds a stud wherever one is.</div></div>
+      <div class="step"><span class="stepnum">2</span><div><b>Rail</b> hangs on the cleat, carries M3 holes at the cartridge pitch, front face and back face.</div></div>
+      <div class="step"><span class="stepnum">3</span><div><b>Cartridges</b> bolt to the rail. Prints in 250mm sections and splices, so the grid is not limited by your bed.</div></div>
+      <div class="step"><span class="stepnum">4</span><div><b>Bezel</b> clips on last. Tiles break on the web between windows, where a seam is invisible.</div></div>
+    </div>
+    <div class="card">
+      <h3>The load question nobody asks first</h3>
+      <p class="sm">Weight scales with the grid and the fixings do not. A 4 &times; 4 of the current cartridge with motors is roughly 3kg hanging off two cleats.</p>
+      <p class="sm" style="margin-bottom:0">Fine on a stud. Not fine on drywall anchors alone. It goes in the build note with a number next to it, because that is the kind of thing that only becomes a problem once the piece is hung.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 SIZES ============ -->
+<section id="p-sizes" hidden>
+  <h2>Your three flap sizes are not three variants</h2>
+  <p class="muted">Two of them are. The third is a different machine, and it is worth knowing that before issue one starts rather than after.</p>
+  <div class="card"><div class="scroll"><table>
+    <thead><tr><th>Metric</th><th>Today 54&times;42.8</th><th>Size B 108&times;42.8</th><th>Size C 300&times;300</th></tr></thead>
+    <tbody id="sizeBody"></tbody>
+  </table></div></div>
+  <div class="grid3" id="verdicts"></div>
+  <div class="card">
+    <h3>If you want size C anyway, and you might</h3>
+    <div class="step"><span class="stepnum">1</span><div><b>Drop the flap count.</b> An artwork probably wants 8 images, not 37. Stack mass falls from 3.5kg to about 755g and the hub shrinks with it.</div></div>
+    <div class="step"><span class="stepnum">2</span><div><b>Change the motor class.</b> 136.6 mN&middot;m is about a third of a typical NEMA 17, so it stops being marginal and starts being ordinary.</div></div>
+    <div class="step"><span class="stepnum">3</span><div><b>Change the flap stock.</b> A 300mm span of 0.76mm PVC will not hold flat. Fluted polypropylene or foam core buys stiffness without the mass of thicker PVC.</div></div>
+    <div class="step"><span class="stepnum">4</span><div><b>Real bearings, steel shaft.</b> A printed journal will not carry that much swinging mass for long.</div></div>
+    <p class="sm" style="margin:14px 0 0"><b>None of that says impossible.</b> It says size C should be quoted as its own build, after a short feasibility pass, instead of being priced as a resized cartridge and discovered later.</p>
+  </div>
+</section>
+
+<!-- ============ 07 PRINT ============ -->
+<section id="p-print" hidden>
+  <h2>What gets printed before anything is committed</h2>
+  <p class="muted">A printed mechanism fails on fits, not on dimensions. Four coupons, about ninety minutes of printing, and the model stops being a guess about your printer.</p>
+  <div class="grid2" id="coupons"></div>
+  <div class="card flat">
+    <h3>Four answers I need to start</h3>
+    <ul class="tight sm" style="margin-bottom:0">
+      <li>Printer model, nozzle size, and the filament you would use</li>
+      <li>Layer height you normally run</li>
+      <li>Heat-set inserts, or would you rather the design used captive nuts</li>
+      <li>Are your flaps bought PVC cards or printed</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 08 HOURS ============ -->
+<section id="p-hours" hidden>
+  <h2>Issue one, end to end</h2>
+  <p class="muted">Hours are the number that decides cost, so they are in writing before anything starts. The rate is in the email.</p>
+  <div class="card"><div class="scroll"><table>
+    <thead><tr><th>Stage</th><th>Hours</th><th>Deliverable</th><th>Done when</th></tr></thead>
+    <tbody id="hoursBody"></tbody>
+  </table></div></div>
+  <div class="grid3">
+    <div class="card"><h3>Issue two, later</h3><p class="mono" style="font-size:19px;margin:0">10 to 14 h</p><p class="sm muted" style="margin:4px 0 0">Once the cartridge is parametric, the rail and bezel read its numbers.</p></div>
+    <div class="card"><h3>Size B, later</h3><p class="mono" style="font-size:19px;margin:0">~8 h</p><p class="sm muted" style="margin:4px 0 0">A variant. Shaft span and flap sag are the work.</p></div>
+    <div class="card"><h3>Size C, later</h3><p class="mono" style="font-size:19px;margin:0">2 h first</p><p class="sm muted" style="margin:4px 0 0">A feasibility pass before any build quote. See tab 6.</p></div>
+  </div>
+  <div class="card flat">
+    <h3>Two things worth saying plainly</h3>
+    <p class="sm">The audit can come back and say 8mm vertical is not reachable without the depth offset. If that happens you hear it in hour three, not in week two, and you decide whether to spend the rest.</p>
+    <p class="sm" style="margin-bottom:0">If you would rather start smaller, the audit alone is 3 hours and is useful even if you then hire somebody else. It is the only stage I would refuse to skip.</p>
+  </div>
+</section>
+
+<footer>
+  Built for this application. Flap size, gap figures and the three target sizes are from your post. Upstream figures (54 &times; 42.8 &times; 0.76mm PVC flaps, 28BYJ-48 at 30 mN&middot;m) are published. Everything else on this page is arithmetic from those, or a labelled assumption that gets measured in hour one.
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+
+/* ---------- tabs ---------- */
+var tabs=$$('#tabs button');
+tabs.forEach(function(b){
+  b.addEventListener('click',function(){
+    tabs.forEach(function(o){
+      o.setAttribute('aria-selected', o===b ? 'true':'false');
+      $('#p-'+o.dataset.t).hidden = (o!==b);
+    });
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+});
+
+/* ---------- parametric core ---------- */
+var P={flap_w:54,flap_h:42.8,flap_t:0.76,flap_count:37,pin_inset:5,
+       slot_extra:1.24,wall_t:1.6,bezel_web:8,window_h:46,
+       drum_depth:18,motor:30,density:1.38};
+
+var PRESETS={
+  a:{flap_w:54, flap_h:42.8, window_h:46,  flap_count:37},
+  b:{flap_w:108,flap_h:42.8, window_h:46,  flap_count:37},
+  c:{flap_w:300,flap_h:300,  window_h:290, flap_count:37}
+};
+
+function calc(p){
+  var slot=p.flap_t+p.slot_extra;
+  var hub=(p.flap_count*slot)/(2*Math.PI);
+  var reach=p.flap_h-p.pin_inset;
+  var sweep_r=hub+reach, sweep_d=2*sweep_r;
+  var win_w=p.flap_w-6;
+  var pitch_x=win_w+p.bezel_web, pitch_y=p.window_h+p.bezel_web;
+  var needs=pitch_y<sweep_d;
+  var coplanar=2*pitch_y;
+  var stagger_ok=coplanar>=sweep_d;
+  var mass=p.flap_w*p.flap_h*p.flap_t/1000*p.density;
+  var stack=mass*p.flap_count;
+  var mNm=mass/1000*9.81*(reach/2/1000)*1000;
+  return {slot:slot,hub:hub,reach:reach,sweep_r:sweep_r,sweep_d:sweep_d,
+    win_w:win_w,win_h:p.window_h,pitch_x:pitch_x,pitch_y:pitch_y,
+    needs:needs,offset:needs?p.drum_depth+2:0,coplanar:coplanar,stagger_ok:stagger_ok,
+    cart_w:p.flap_w+2*p.wall_t+0.4, span:p.flap_w+4,
+    mass:mass,stack:stack,mNm:mNm,pct:mNm/p.motor*100};
+}
+function f(n,d){return Number(n).toFixed(d===undefined?1:d)}
+
+/* ---------- controls ---------- */
+var CTRLS=[
+  {k:'flap_w',    lab:'Flap width',        min:30, max:320, step:1,   u:'mm', hint:'54 today. Your other two sizes are 108 and 300.'},
+  {k:'flap_h',    lab:'Flap height',       min:25, max:320, step:0.2, u:'mm', hint:'Drives the sweep circle, which drives the vertical pitch.'},
+  {k:'window_h',  lab:'Window height',     min:20, max:300, step:1,   u:'mm', hint:'The one number that is measured, not derived. Assumed here.'},
+  {k:'flap_count',lab:'Flaps per cartridge',min:8, max:52,  step:1,   u:'',   hint:'Sets the hub radius. The only lever that shrinks the sweep.'},
+  {k:'pin_inset', lab:'Pin inset',         min:2,  max:14,  step:0.5, u:'mm', hint:'Flap top edge to pin centre. Measured in the audit.'},
+  {k:'slot_extra',lab:'Slot room per flap',min:0.4,max:3,   step:0.02,u:'mm', hint:'On top of flap thickness. Print coupon 3 sets this.'},
+  {k:'bezel_web', lab:'Bezel web (the gap)',min:2, max:30,  step:0.5, u:'mm', hint:'What you asked to be 8mm, equal in both axes.'},
+  {k:'wall_t',    lab:'Wall thickness',    min:0.8,max:4,   step:0.1, u:'mm', hint:'1.6mm is four perimeters at a 0.4 nozzle.'}
+];
+var ctrlHost=$('#controls');
+CTRLS.forEach(function(c){
+  var d=document.createElement('div'); d.className='ctrl';
+  d.innerHTML='<label for="c_'+c.k+'">'+c.lab+'</label>'+
+    '<span class="v" id="v_'+c.k+'"></span>'+
+    '<input type="range" id="c_'+c.k+'" min="'+c.min+'" max="'+c.max+'" step="'+c.step+'">'+
+    '<span class="hint">'+c.hint+'</span>';
+  ctrlHost.appendChild(d);
+  var inp=$('#c_'+c.k,d);
+  inp.value=P[c.k];
+  inp.addEventListener('input',function(){
+    P[c.k]=parseFloat(inp.value);
+    $$('#presets button').forEach(function(b){b.setAttribute('aria-pressed','false')});
+    render();
+  });
+});
+$$('#presets button').forEach(function(b){
+  b.addEventListener('click',function(){
+    var pr=PRESETS[b.dataset.p];
+    Object.keys(pr).forEach(function(k){P[k]=pr[k]; var i=$('#c_'+k); if(i)i.value=pr[k];});
+    $$('#presets button').forEach(function(o){o.setAttribute('aria-pressed', o===b?'true':'false')});
+    render();
+  });
+});
+
+/* ---------- readout + figure ---------- */
+function render(){
+  var r=calc(P);
+  CTRLS.forEach(function(c){
+    var el=$('#v_'+c.k);
+    var dec=(c.step<1)?2:(c.step<0.5?2:0);
+    el.textContent=f(P[c.k], P[c.k]%1===0?0:dec)+(c.u?' '+c.u:'');
+  });
+
+  var cells=[
+    ['slot pitch', f(r.slot,2),'mm',''],
+    ['hub radius', f(r.hub,1),'mm',''],
+    ['sweep circle', f(r.sweep_d,1),'mm','hl'],
+    ['window', f(r.win_w,0)+' x '+f(r.win_h,0),'mm',''],
+    ['pitch x', f(r.pitch_x,1),'mm',''],
+    ['pitch y', f(r.pitch_y,1),'mm','hl'],
+    ['depth offset', r.offset?f(r.offset,0):'0','mm', r.offset?'hl':'good'],
+    ['cartridge w', f(r.cart_w,1),'mm',''],
+    ['shaft span', f(r.span,0),'mm',''],
+    ['flap mass', f(r.mass,2),'g',''],
+    ['stack mass', f(r.stack,0),'g',''],
+    ['peak torque', f(r.mNm,2),'mN·m', r.pct>60?'bad':'good'],
+    ['% of motor', f(r.pct,1),'%', r.pct>60?'bad':'good']
+  ];
+  $('#readout').innerHTML=cells.map(function(c){
+    return '<div class="'+c[3]+'"><div class="k">'+c[0]+'</div>'+
+      '<div class="val">'+c[1]+'<small>'+c[2]+'</small></div></div>';
+  }).join('');
+
+  var checks=[
+    {ok:P.wall_t>=1.2, t:'Wall at '+f(P.wall_t,1)+'mm '+(P.wall_t>=1.2?'holds':'will not hold')+' an M3 boss on an FDM print.'},
+    {ok:r.stagger_ok,  t:'Alternating rows sit '+f(r.coplanar,1)+'mm apart in the same depth plane against a '+f(r.sweep_d,1)+'mm sweep circle. '+(r.stagger_ok?'Clears.':'Collides, so drop the flap count or widen the bezel web.')},
+    {ok:r.pct<60,      t:'Peak torque is '+f(r.pct,1)+'% of a 28BYJ-48. '+(r.pct<60?'Inside the working range.':'Over the motor once friction and acceleration are added. This is a different drive, not a bigger cartridge.')},
+    {ok:!r.needs,      t:r.needs ? 'Pitch of '+f(r.pitch_y,1)+'mm is tighter than the '+f(r.sweep_d,1)+'mm sweep, so rows have to stagger by '+f(r.offset,0)+'mm in depth.' : 'Pitch clears the sweep circle, so all rows can sit flush in one plane.',
+     neutral:r.needs}
+  ];
+  $('#checks').innerHTML=checks.map(function(c){
+    return '<div class="check '+(c.ok?'pass':'fail')+'"><span class="mk">'+(c.ok?'OK':'!!')+'</span><span>'+c.t+'</span></div>';
+  }).join('');
+
+  drawFig(r);
+  drawGrid();
+}
+
+function drawFig(r){
+  var W=320,H=300,pad=14;
+  var two=r.pitch_y+r.sweep_d;
+  var s=Math.min((H-2*pad)/two,(W-120)/(r.sweep_d+70));
+  s=Math.max(s,0.06);
+  var cx=120, cyA=pad+r.sweep_r*s, cyB=cyA+r.pitch_y*s;
+  var rr=r.sweep_r*s, hubr=Math.max(2,r.hub*s);
+  var frontA=cx-(r.offset?0:0);
+  var bezX=46;
+  var winA=[cyA-r.win_h*s/2, cyA+r.win_h*s/2];
+  var winB=[cyB-r.win_h*s/2, cyB+r.win_h*s/2];
+  var dx=r.offset*s*0.9;
+  var collide = (cyB-cyA) < (2*rr) && r.offset===0;
+
+  var g='';
+  g+='<line x1="'+bezX+'" y1="'+(pad-6)+'" x2="'+bezX+'" y2="'+(H-22)+'" stroke="var(--ink)" stroke-width="3"/>';
+  g+='<text x="4" y="'+(H-10)+'" font-size="10" fill="var(--ink2)" font-family="Inter,sans-serif">bezel / viewing plane</text>';
+  [[cyA,0,'var(--ok)',winA],[cyB,dx,'var(--accent)',winB]].forEach(function(row){
+    var cy=row[0],ox=row[1],col=row[2],win=row[3];
+    g+='<circle cx="'+(cx+ox)+'" cy="'+cy+'" r="'+rr+'" fill="none" stroke="'+col+'" stroke-width="1.5" stroke-dasharray="5 4" opacity=".85"/>';
+    g+='<circle cx="'+(cx+ox)+'" cy="'+cy+'" r="'+hubr+'" fill="'+col+'" opacity=".3" stroke="'+col+'" stroke-width="1.2"/>';
+    g+='<line x1="'+(cx+ox)+'" y1="'+cy+'" x2="'+(cx+ox)+'" y2="'+(cy-rr)+'" stroke="'+col+'" stroke-width="2"/>';
+    g+='<rect x="'+(bezX-5)+'" y="'+win[0]+'" width="7" height="'+Math.max(2,win[1]-win[0])+'" fill="'+col+'"/>';
+    if(ox>0){
+      g+='<line x1="'+bezX+'" y1="'+win[0]+'" x2="'+(cx+ox-rr*0.0)+'" y2="'+win[0]+'" stroke="'+col+'" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/>';
+      g+='<line x1="'+bezX+'" y1="'+win[1]+'" x2="'+(cx+ox-rr*0.0)+'" y2="'+win[1]+'" stroke="'+col+'" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/>';
+    }
+  });
+  var gy1=winA[1],gy2=winB[0];
+  g+='<line x1="'+(bezX-22)+'" y1="'+gy1+'" x2="'+(bezX-22)+'" y2="'+gy2+'" stroke="var(--warn)" stroke-width="1.3"/>';
+  g+='<line x1="'+(bezX-26)+'" y1="'+gy1+'" x2="'+(bezX-18)+'" y2="'+gy1+'" stroke="var(--warn)" stroke-width="1.3"/>';
+  g+='<line x1="'+(bezX-26)+'" y1="'+gy2+'" x2="'+(bezX-18)+'" y2="'+gy2+'" stroke="var(--warn)" stroke-width="1.3"/>';
+  g+='<text x="'+(bezX-20)+'" y="'+((gy1+gy2)/2+4)+'" font-size="11" font-weight="600" fill="var(--warn)" text-anchor="end" font-family="IBM Plex Mono,monospace">'+f(P.bezel_web,1)+'</text>';
+  if(collide){
+    g+='<text x="'+(cx+rr+8)+'" y="'+((cyA+cyB)/2)+'" font-size="11" font-weight="600" fill="var(--warn)" font-family="IBM Plex Mono,monospace">circles overlap</text>';
+  }
+  $('#fig').innerHTML=g;
+  $('#figNote').textContent = r.offset
+    ? 'Row two sits '+f(r.offset,0)+'mm behind row one so the sweep circles can share vertical space. Both windows stay on one flat bezel.'
+    : 'Pitch clears the sweep circle, so both rows sit flush in the same depth plane and no bezel offset is needed.';
+}
+
+/* ---------- grid builder ---------- */
+function drawGrid(){
+  var cols=parseInt($('#gc').value,10), rows=parseInt($('#gr').value,10);
+  $('#gcv').textContent=cols; $('#grv').textContent=rows;
+  var r=calc(P);
+  var cell=Math.max(6,Math.min(46, 300/Math.max(cols,1)));
+  var ar=r.win_h/Math.max(r.win_w,1);
+  var host=$('#gridPrev');
+  host.style.gridTemplateColumns='repeat('+cols+','+cell+'px)';
+  var html='';
+  for(var y=0;y<rows;y++)for(var x=0;x<cols;x++){
+    html+='<i class="'+((r.offset&&y%2===1)?'back':'')+'" style="height:'+Math.max(5,cell*ar)+'px"></i>';
+  }
+  host.innerHTML=html;
+
+  var w=cols*r.pitch_x+P.bezel_web, h=rows*r.pitch_y+P.bezel_web;
+  var n=cols*rows;
+  var mass=(r.stack+34+55)*n/1000;
+  $('#gridStats').innerHTML=
+    kv('Cartridges', n)+
+    kv('Overall size', f(w,0)+' x '+f(h,0)+' mm')+
+    kv('Rail runs', cols+' vertical')+
+    kv('Bezel tiles', Math.ceil(cols*r.pitch_x/250)+' x '+Math.ceil(rows*r.pitch_y/250))+
+    kv('M3 bolts', n*4)+
+    kv('Est. hanging mass', f(mass,1)+' kg')+
+    '<p class="xs muted" style="margin:10px 0 0">Mass adds the flap stack, a 34g motor and 55g of printed cartridge per unit. The printed figure is an estimate until a real part is weighed.</p>';
+}
+function kv(k,v){return '<div class="kv"><span>'+k+'</span><b>'+v+'</b></div>'}
+$('#gc').addEventListener('input',drawGrid);
+$('#gr').addEventListener('input',drawGrid);
+
+/* ---------- bezel figure ---------- */
+var BEZ={now:null,new:null};
+function drawBez(mode){
+  var g='', rr=62, win=30;
+  var bezX=70;
+  if(mode==='now'){
+    g+='<text x="20" y="26" font-size="14" font-weight="700" fill="var(--ink)" font-family="Space Grotesk,sans-serif">As built: one depth plane</text>';
+    g+='<line x1="'+bezX+'" y1="50" x2="'+bezX+'" y2="350" stroke="var(--ink)" stroke-width="3"/>';
+    [110,236].forEach(function(cy,i){
+      g+='<rect x="'+bezX+'" y="'+(cy-rr)+'" width="210" height="'+(2*rr)+'" fill="none" stroke="var(--line2)" stroke-width="1.3"/>';
+      g+='<circle cx="190" cy="'+cy+'" r="'+rr+'" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="5 4"/>';
+      g+='<circle cx="190" cy="'+cy+'" r="13" fill="var(--accent)" opacity=".3" stroke="var(--accent)"/>';
+      g+='<rect x="'+(bezX-6)+'" y="'+(cy-win)+'" width="8" height="'+(2*win)+'" fill="var(--warn)"/>';
+    });
+    g+='<line x1="420" y1="48" x2="420" y2="174" stroke="var(--ink2)" stroke-width="1.3"/>';
+    g+='<text x="430" y="105" font-size="12" font-weight="600" fill="var(--ink2)" font-family="IBM Plex Mono,monospace">sweep</text>';
+    g+='<text x="430" y="121" font-size="12" font-weight="600" fill="var(--ink2)" font-family="IBM Plex Mono,monospace">99.2 mm</text>';
+    g+='<line x1="44" y1="140" x2="44" y2="206" stroke="var(--warn)" stroke-width="1.4"/>';
+    g+='<text x="38" y="178" font-size="12" font-weight="600" fill="var(--warn)" text-anchor="end" font-family="IBM Plex Mono,monospace">30</text>';
+    g+='<text x="20" y="378" font-size="12.5" fill="var(--ink2)" font-family="Inter,sans-serif">Pitch cannot go below the circle. Trimming walls changes nothing.</text>';
+  }else{
+    g+='<text x="20" y="26" font-size="14" font-weight="700" fill="var(--ok)" font-family="Space Grotesk,sans-serif">Bezel and rail: rows alternate in depth</text>';
+    g+='<rect x="'+bezX+'" y="50" width="12" height="300" fill="var(--ink)"/>';
+    var rows=[[112,0,'var(--ok)'],[182,58,'var(--accent)'],[252,0,'var(--ok)']];
+    rows.forEach(function(row){
+      var cy=row[0],ox=row[1],col=row[2];
+      g+='<rect x="'+(bezX+12+ox)+'" y="'+(cy-rr)+'" width="200" height="'+(2*rr)+'" fill="none" stroke="var(--line2)" stroke-width="1.2" stroke-dasharray="'+(ox?'4 3':'0')+'"/>';
+      g+='<circle cx="'+(190+ox)+'" cy="'+cy+'" r="'+rr+'" fill="none" stroke="'+col+'" stroke-width="1.6" stroke-dasharray="5 4"/>';
+      g+='<circle cx="'+(190+ox)+'" cy="'+cy+'" r="13" fill="'+col+'" opacity=".3" stroke="'+col+'"/>';
+      g+='<rect x="'+(bezX-6)+'" y="'+(cy-win)+'" width="8" height="'+(2*win)+'" fill="'+col+'"/>';
+      if(ox){
+        g+='<line x1="'+(bezX+12)+'" y1="'+(cy-win)+'" x2="'+(bezX+12+ox)+'" y2="'+(cy-win)+'" stroke="'+col+'" stroke-width="1" stroke-dasharray="3 3"/>';
+        g+='<line x1="'+(bezX+12)+'" y1="'+(cy+win)+'" x2="'+(bezX+12+ox)+'" y2="'+(cy+win)+'" stroke="'+col+'" stroke-width="1" stroke-dasharray="3 3"/>';
+      }
+    });
+    g+='<line x1="44" y1="142" x2="44" y2="152" stroke="var(--ok)" stroke-width="1.6"/>';
+    g+='<text x="38" y="152" font-size="12" font-weight="600" fill="var(--ok)" text-anchor="end" font-family="IBM Plex Mono,monospace">8</text>';
+    g+='<text x="470" y="150" font-size="12" font-weight="600" fill="var(--ink2)" font-family="IBM Plex Mono,monospace">same plane</text>';
+    g+='<text x="470" y="166" font-size="12" font-weight="600" fill="var(--ink2)" font-family="IBM Plex Mono,monospace">108 mm apart</text>';
+    g+='<text x="470" y="182" font-size="12" font-weight="600" fill="var(--ok)" font-family="IBM Plex Mono,monospace">clears 99.2</text>';
+    g+='<text x="20" y="378" font-size="12.5" fill="var(--ink2)" font-family="Inter,sans-serif">Gap becomes a bezel dimension. Cost is about 20mm of depth on the back row.</text>';
+  }
+  $('#bezFig').innerHTML=g;
+}
+$$('#bezelToggle button').forEach(function(b){
+  b.addEventListener('click',function(){
+    $$('#bezelToggle button').forEach(function(o){o.setAttribute('aria-pressed',o===b?'true':'false')});
+    drawBez(b.dataset.b);
+  });
+});
+
+/* ---------- static tables ---------- */
+var STACK=[
+  ['Horizontal','Wall, left','4 mm','Printed wall, perimeters plus tolerance','yes','1.6 mm'],
+  ['Horizontal','Wall, right','4 mm','Same part, same rule','yes','1.6 mm'],
+  ['Horizontal','<b>Between viewing areas</b>','<b>8 mm</b>','','<span class="pill ok">free</span>','<b>3.2 mm</b>'],
+  ['Vertical','Flap overhang above','~15 mm','Half the flap sits above the split line','no','mechanism'],
+  ['Vertical','Flap overhang below','~15 mm','The fallen flap hangs below the split line','no','mechanism'],
+  ['Vertical','<b>Between viewing areas</b>','<b>30 mm</b>','','<span class="pill warn">fixed</span>','<b>measured</b>']
+];
+$('#stackBody').innerHTML=STACK.map(function(r){
+  return '<tr><td class="sm muted">'+r[0]+'</td><td>'+r[1]+'</td><td class="num">'+r[2]+'</td><td class="sm">'+r[3]+'</td><td class="sm">'+r[4]+'</td><td class="num">'+r[5]+'</td></tr>';
+}).join('');
+
+var SIZES=[
+  ['Flap area','2,311 mm&sup2;','4,622 mm&sup2;','90,000 mm&sup2;'],
+  ['Flap mass, 0.76mm PVC','2.42 g','4.85 g','94.4 g'],
+  ['Stack mass, 37 flaps','89.6 g','179.5 g','3,493 g'],
+  ['Hub radius','11.8 mm','11.8 mm','11.8 mm'],
+  ['Sweep diameter','99.2 mm','99.2 mm','613.6 mm'],
+  ['Shaft span','58 mm','112 mm','304 mm'],
+  ['Relative shaft sag','1.0x','7.2x','144x'],
+  ['Peak torque, one flap','0.45 mN&middot;m','0.90 mN&middot;m','136.6 mN&middot;m'],
+  ['Share of a 28BYJ-48','1.5%','3.0%','<b style="color:var(--warn)">455%</b>'],
+  ['Flap self-weight sag','1.0x','1.0x','2,400x']
+];
+$('#sizeBody').innerHTML=SIZES.map(function(r){
+  return '<tr><td class="sm">'+r[0]+'</td><td class="num">'+r[1]+'</td><td class="num">'+r[2]+'</td><td class="num">'+r[3]+'</td></tr>';
+}).join('');
+
+var VERD=[
+  ['54 &times; 42.8','ok','Baseline','The size that already works, and what the torque model is calibrated against. Everything else on this page is measured against it.'],
+  ['108 &times; 42.8','acc','A span problem','Torque is fine at 3% of the motor. The work is a 112mm shaft span, flap sag across 108mm, and drum torsional wind-up. Realistic as a variant.'],
+  ['300 &times; 300','warn','A different machine','Over the motor by 4.5x from a single flap, 3.5kg of stack, a 614mm sweep box, and flap stock that will not hold flat at that span.']
+];
+$('#verdicts').innerHTML=VERD.map(function(v){
+  return '<div class="card"><span class="pill '+v[1]+'">'+v[2]+'</span><p class="mono" style="font-size:16px;margin:9px 0 6px">'+v[0]+'</p><p class="sm muted" style="margin:0">'+v[3]+'</p></div>';
+}).join('');
+
+var COUP=[
+  ['Coupon 1','Clearance ladder','Seven pockets from 0.10 to 0.40mm in 0.05 steps, each with a matching pin. You tell me the smallest pair that turns freely.','Sets <code>fit_clearance</code>, which drives every rotating and sliding fit in the model.'],
+  ['Coupon 2','M3 boss pull','Four bosses at 1.6, 2.0, 2.4 and 3.2mm wall, each with a through hole and an insert seat. Bring a bolt to hand tight and tell me which crack.','Decides whether the horizontal gap really reaches 3.2mm on your printer and your filament.'],
+  ['Coupon 3','Flap slot strip','40mm of spool surface with slots at five widths around 0.76mm. Push a real flap into each.','Smallest part on the list, largest consequence. Slot pitch sets the hub, which sets the sweep, which sets the vertical gap.'],
+  ['Coupon 4','Bezel web','Three bezel sections at 6, 8 and 10mm web, printed in your finish material.','An art decision, not an engineering one. Look at them across the room and pick, instead of taking 8mm from the post as a specification.']
+];
+$('#coupons').innerHTML=COUP.map(function(c){
+  return '<div class="card"><span class="pill acc">'+c[0]+'</span><p class="mono" style="font-size:15px;margin:9px 0 7px">'+c[1]+'</p><p class="sm" style="margin-bottom:8px">'+c[2]+'</p><p class="sm muted" style="margin:0">'+c[3]+'</p></div>';
+}).join('');
+
+var HOURS=[
+  ['Dimension audit','3','The eleven numbers measured off your STLs, a dimensioned drawing front and side, and the measured pitch floor for your flap.','A written answer on whether 8mm vertical is reachable without the bezel, with the arithmetic shown'],
+  ['Parametric rebuild','7','One cartridge rebuilt as a parametric model driven by flap size, flap count and fit clearance. STEP plus source in Fusion or OpenSCAD.','Changing flap width regenerates a valid watertight cartridge with no manual repair'],
+  ['Spacing and interlock','5','Equal horizontal and vertical pitch at the measured floor. Bezel and rail if the floor needs them. M3 pattern carried over from your holes.','Two cartridges bolt together both ways with the same gap'],
+  ['Print test pack','3','Four tolerance coupons and a two-cartridge test set, oriented and ready to slice, plus the build note.','You print it and the fits work at the clearance the coupons chose'],
+  ['Revision round','2','Changes from what your test print actually shows, re-exported.','You are holding two cartridges at the agreed gap'],
+  ['<b>Total</b>','<b>20</b>','','']
+];
+$('#hoursBody').innerHTML=HOURS.map(function(r){
+  return '<tr><td>'+r[0]+'</td><td class="num">'+r[1]+'</td><td class="sm">'+r[2]+'</td><td class="sm muted">'+r[3]+'</td></tr>';
+}).join('');
+
+drawBez('now');
+render();
+})();
+</script>
+
+</body>
+</html>
